@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automata Theory Simulator</title>
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #22263a;
+            --border: #2e3350;
+            --accent: #6c8cff;
+            --accent2: #a78bfa;
+            --green: #34d399;
+            --red: #f87171;
+            --yellow: #fbbf24;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --radius: 10px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-size: 14px;
+            min-height: 100vh;
+        }
+
+        /* ── Header ── */
+        header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 18px 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        header .logo {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        header p {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            padding: 20px 32px 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .tab {
+            padding: 10px 20px;
+            border-radius: var(--radius) var(--radius) 0 0;
+            border: 1px solid transparent;
+            border-bottom: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--muted);
+            background: transparent;
+            transition: all .2s;
+        }
+
+        .tab:hover {
+            color: var(--text);
+            background: var(--surface2);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            background: var(--bg);
+            border-color: var(--border);
+        }
+
+        /* ── Layout ── */
+        .page {
+            display: none;
+            padding: 32px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .card-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .06em;
+            margin-bottom: 18px;
+        }
+
+        /* ── Form elements ── */
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+            margin-top: 14px;
+        }
+
+        label:first-of-type {
+            margin-top: 0;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            padding: 9px 12px;
+            font-size: 13px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            transition: border-color .2s;
+            outline: none;
+        }
+
+        input:focus,
+        textarea:focus {
+            border-color: var(--accent);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 110px;
+        }
+
+        /* ── Transition table builder ── */
+        .table-builder {
+            overflow-x: auto;
+            margin-top: 8px;
+        }
+
+        .table-builder table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 300px;
+        }
+
+        .table-builder th,
+        .table-builder td {
+            border: 1px solid var(--border);
+            padding: 0;
+        }
+
+        .table-builder th {
+            background: var(--surface2);
+            padding: 8px 14px;
+            font-size: 12px;
+            color: var(--muted);
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .table-builder td input {
+            border: none;
+            border-radius: 0;
+            background: transparent;
+            text-align: center;
+            padding: 8px 10px;
+            width: 100%;
+        }
+
+        .table-builder td input:focus {
+            background: var(--surface2);
+        }
+
+        .row-label {
+            background: var(--surface2) !important;
+            padding: 8px 14px !important;
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #5a7af0;
+        }
+
+        .btn-secondary {
+            background: var(--surface2);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        /* ── Result panel ── */
+        .result-panel {
+            margin-top: 24px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .result-header.accept {
+            background: rgba(52, 211, 153, .12);
+            border-bottom: 1px solid rgba(52, 211, 153, .25);
+            color: var(--green);
+        }
+
+        .result-header.reject {
+            background: rgba(248, 113, 113, .12);
+            border-bottom: 1px solid rgba(248, 113, 113, .25);
+            color: var(--red);
+        }
+
+        .result-header.info {
+            background: rgba(108, 140, 255, .10);
+            border-bottom: 1px solid var(--border);
+            color: var(--accent);
+        }
+
+        .result-body {
+            padding: 20px;
+        }
+
+        /* ── Trace ── */
+        .trace {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .trace-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Cascadia Code', monospace;
+            font-size: 13px;
+            padding: 8px 12px;
+            background: var(--surface2);
+            border-radius: 6px;
+        }
+
+        .trace-step .state {
+            color: var(--accent);
+            min-width: 60px;
+        }
+
+        .trace-step .arrow {
+            color: var(--muted);
+        }
+
+        .trace-step .symbol {
+            color: var(--yellow);
+            min-width: 24px;
+            text-align: center;
+            background: rgba(251, 191, 36, .1);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .trace-step .next {
+            color: var(--green);
+        }
+
+        .trace-empty {
+            color: var(--muted);
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        /* ── Transition output table ── */
+        .out-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .out-table th {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            padding: 9px 14px;
+            text-align: center;
+            color: var(--muted);
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .out-table td {
+            border: 1px solid var(--border);
+            padding: 9px 14px;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .out-table tr:hover td {
+            background: var(--surface2);
+        }
+
+        .out-table td.accept-state {
+            color: var(--green);
+            font-weight: 600;
+        }
+
+        .out-table td.start-state {
+            color: var(--accent);
+        }
+
+        /* ── State mapping ── */
+        .mapping-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 4px;
+        }
+
+        .mapping-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: var(--surface2);
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .mapping-item .from {
+            color: var(--accent2);
+        }
+
+        .mapping-item .to {
+            color: var(--accent);
+        }
+
+        .mapping-item .badge {
+            margin-left: auto;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 99px;
+            font-weight: 600;
+        }
+
+        .badge-accept {
+            background: rgba(52, 211, 153, .15);
+            color: var(--green);
+        }
+
+        .badge-start {
+            background: rgba(108, 140, 255, .15);
+            color: var(--accent);
+        }
+
+        /* ── Minimization stats ── */
+        .stats-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .stat-box {
+            flex: 1;
+            min-width: 120px;
+            background: var(--surface2);
+            border-radius: 8px;
+            padding: 14px 18px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-box .lbl {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ── Error ── */
+        .error-box {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: rgba(248, 113, 113, .1);
+            border: 1px solid rgba(248, 113, 113, .3);
+            border-radius: 8px;
+            color: var(--red);
+            font-size: 13px;
+        }
+
+        /* ── Info hint ── */
+        .hint {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 5px;
+        }
+
+        /* ── Section title ── */
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .section-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        /* ── NFA multi-target badge ── */
+        .multi-hint {
+            display: inline-block;
+            background: rgba(167, 139, 250, .12);
+            color: var(--accent2);
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">δ</div>
+        <div>
+            <h1>Automata Theory Simulator</h1>
+            <p>Foundations of Computation — Dr. Tabasi</p>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('dfa')">DFA Simulator</button>
+        <button class="tab" onclick="switchTab('nfa')">NFA Simulator</button>
+        <button class="tab" onclick="switchTab('convert')">NFA → DFA</button>
+        <button class="tab" onclick="switchTab('minimize')">DFA Minimizer</button>
+    </div>
+
+    <!-- ══════════════ DFA SIMULATOR ══════════════ -->
+    <div id="page-dfa" class="page active">
+        <div class="section-title">DFA Simulator</div>
+        <div class="section-sub">Define a Deterministic Finite Automaton and simulate it on an input string.</div>
+
+        <div class="grid-2">
+            <div>
+                <div class="card">
+                    <div class="card-title">Machine Definition</div>
+
+                    <label>States Q — comma separated</label>
+                    <input id="dfa-states" placeholder="q0, q1, q2" value="q0, q1, q2" />
+
+                    <label>Alphabet Σ — comma separated</label>
+                    <input id="dfa-alpha" placeholder="a, b" value="a, b" />
+
+                    <label>Start State q₀</label>
+                    <input id="dfa-start" placeholder="q0" value="q0" />
+
+                    <label>Accept States F — comma separated</label>
+                    <input id="dfa-accept" placeholder="q2" value="q2" />
+
+                    <label>Test String</label>
+                    <input id="dfa-input" placeholder="abab" value="abab" />
+
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="buildDFATable()">Build Transition Table</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px">
+                    <div class="card-title">Transition Function δ</div>
+                    <div id="dfa-table-wrap">
+                        <p class="hint">Fill in states and alphabet above, then click "Build Transition Table".</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="runDFA()">▶ Run Simulation</button>
+                        <button class="btn btn-secondary" onclick="loadDFAExample()">Load Example</button>
+                    </div>
+                    <div id="dfa-error"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">Result</div>
+                    <div id="dfa-result">
+                        <p class="hint">Run the simulation to see the result.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ NFA SIMULATOR ══════════════ -->
+    <div id="page-nfa" class="page">
+        <div class="section-title">NFA Simulator</div>
+        <div class="section-sub">Simulate a Nondeterministic Finite Automaton. Each transition can lead to multiple
+            states. Use ε for epsilon transitions.</div>
+
+        <div class="grid-2">
+            <div>
+                <div class="card">
+                    <div class="card-title">Machine Definition</div>
+
+                    <label>States Q</label>
+                    <input id="nfa-states" placeholder="q0, q1, q2" value="q0, q1, q2" />
+
+                    <label>Alphabet Σ (without ε)</label>
+                    <input id="nfa-alpha" placeholder="a, b" value="a, b" />
+
+                    <label>Start State q₀</label>
+                    <input id="nfa-start" placeholder="q0" value="q0" />
+
+                    <label>Accept States F</label>
+                    <input id="nfa-accept" placeholder="q2" value="q2" />
+
+                    <label>Test String</label>
+                    <input id="nfa-input" placeholder="ab" value="ab" />
+
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="buildNFATable()">Build Transition Table</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px">
+                    <div class="card-title">Transition Function δ <span class="multi-hint">comma-separated targets per
+                            cell</span></div>
+                    <div id="nfa-table-wrap">
+                        <p class="hint">Fill in states and alphabet above, then click "Build Transition Table".</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="runNFA()">▶ Run Simulation</button>
+                        <button class="btn btn-secondary" onclick="loadNFAExample()">Load Example</button>
+                    </div>
+                    <div id="nfa-error"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">Result</div>
+                    <div id="nfa-result">
+                        <p class="hint">Run the simulation to see the result.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ NFA → DFA ══════════════ -->
+    <div id="page-convert" class="page">
+        <div class="section-title">NFA → DFA Converter</div>
+        <div class="section-sub">Convert an NFA (with or without ε-transitions) to an equivalent DFA using the Subset
+            Construction algorithm.</div>
+
+        <div class="grid-2">
+            <div>
+                <div class="card">
+                    <div class="card-title">NFA Definition</div>
+
+                    <label>States Q</label>
+                    <input id="conv-states" placeholder="q0, q1, q2" value="q0, q1, q2, q3" />
+
+                    <label>Alphabet Σ (without ε)</label>
+                    <input id="conv-alpha" placeholder="a, b" value="a, b" />
+
+                    <label>Start State q₀</label>
+                    <input id="conv-start" placeholder="q0" value="q0" />
+
+                    <label>Accept States F</label>
+                    <input id="conv-accept" placeholder="q3" value="q3" />
+
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="buildConvTable()">Build Transition Table</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px">
+                    <div class="card-title">NFA Transition Function <span class="multi-hint">use ε for epsilon</span>
+                    </div>
+                    <div id="conv-table-wrap">
+                        <p class="hint">Fill in states and alphabet above, then click "Build Transition Table".</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="runConvert()">⇒ Convert to DFA</button>
+                        <button class="btn btn-secondary" onclick="loadConvExample()">Load Example</button>
+                    </div>
+                    <div id="conv-error"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">Converted DFA</div>
+                    <div id="conv-result">
+                        <p class="hint">Run the conversion to see the result.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════ MINIMIZER ══════════════ -->
+    <div id="page-minimize" class="page">
+        <div class="section-title">DFA Minimizer</div>
+        <div class="section-sub">Minimize a DFA using Hopcroft's Algorithm — removes unreachable states and merges
+            indistinguishable ones.</div>
+
+        <div class="grid-2">
+            <div>
+                <div class="card">
+                    <div class="card-title">DFA Definition</div>
+
+                    <label>States Q</label>
+                    <input id="min-states" placeholder="q0, q1, q2, q3, q4" value="q0, q1, q2, q3, q4" />
+
+                    <label>Alphabet Σ</label>
+                    <input id="min-alpha" placeholder="a, b" value="a, b" />
+
+                    <label>Start State q₀</label>
+                    <input id="min-start" placeholder="q0" value="q0" />
+
+                    <label>Accept States F</label>
+                    <input id="min-accept" placeholder="q2" value="q2" />
+
+                    <div class="btn-row">
+                        <button class="btn btn-secondary" onclick="buildMinTable()">Build Transition Table</button>
+                    </div>
+                </div>
+
+                <div class="card" style="margin-top:24px">
+                    <div class="card-title">Transition Function δ</div>
+                    <div id="min-table-wrap">
+                        <p class="hint">Fill in states and alphabet above, then click "Build Transition Table".</p>
+                    </div>
+                    <div class="btn-row">
+                        <button class="btn btn-primary" onclick="runMinimize()">⚙ Minimize DFA</button>
+                        <button class="btn btn-secondary" onclick="loadMinExample()">Load Example</button>
+                    </div>
+                    <div id="min-error"></div>
+                </div>
+            </div>
+
+            <div>
+                <div class="card">
+                    <div class="card-title">Minimized DFA</div>
+                    <div id="min-result">
+                        <p class="hint">Run the minimizer to see the result.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ── Tab switching ──────────────────────────────────────────
+        function switchTab(name) {
+            document.querySelectorAll('.tab').forEach((t, i) => {
+                const names = ['dfa', 'nfa', 'convert', 'minimize'];
+                t.classList.toggle('active', names[i] === name);
+            });
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById('page-' + (name === 'convert' ? 'convert' : name === 'minimize' ? 'minimize' : name)).classList.add('active');
+        }
+
+        // ── Helpers ───────────────────────────────────────────────
+        function parseList(str) {
+            return str.split(',').map(s => s.trim()).filter(Boolean);
+        }
+
+        function showError(id, msg) {
+            document.getElementById(id).innerHTML = msg
+                ? `<div class="error-box">⚠ ${msg}</div>`
+                : '';
+        }
+
+        function buildTable(wrapId, states, symbols, isNFA = false, epsilonCol = false) {
+            const allSymbols = epsilonCol ? ['ε', ...symbols] : symbols;
+            let html = '<div class="table-builder"><table><thead><tr>';
+            html += '<th>State \\ Symbol</th>';
+            allSymbols.forEach(s => html += `<th>${s}</th>`);
+            html += '</tr></thead><tbody>';
+            states.forEach(state => {
+                html += `<tr><td class="row-label">${state}</td>`;
+                allSymbols.forEach(sym => {
+                    html += `<td><input type="text" id="t_${wrapId}_${state}_${sym}" placeholder="${isNFA ? '∅' : '—'}" /></td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            document.getElementById(wrapId).innerHTML = html;
+        }
+
+        function readTransitions(wrapId, states, symbols, isNFA = false, epsilonCol = false) {
+            const allSymbols = epsilonCol ? ['ε', ...symbols] : symbols;
+            const t = {};
+            states.forEach(state => {
+                t[state] = {};
+                allSymbols.forEach(sym => {
+                    const el = document.getElementById(`t_${wrapId}_${state}_${sym}`);
+                    const val = el ? el.value.trim() : '';
+                    if (isNFA) {
+                        t[state][sym] = val ? parseList(val) : [];
+                    } else {
+                        if (val) t[state][sym] = val;
+                    }
+                });
+            });
+            return t;
+        }
+
+        function fillTable(wrapId, states, symbols, transitions, isNFA = false, epsilonCol = false) {
+            const allSymbols = epsilonCol ? ['ε', ...symbols] : symbols;
+            states.forEach(state => {
+                allSymbols.forEach(sym => {
+                    const el = document.getElementById(`t_${wrapId}_${state}_${sym}`);
+                    if (!el) return;
+                    const val = transitions[state]?.[sym];
+                    if (val === undefined || val === null) return;
+                    el.value = isNFA ? (Array.isArray(val) ? val.join(', ') : val) : val;
+                });
+            });
+        }
+
+        function renderOutTable(states, alphabet, transitions, start, accept) {
+            let html = '<div style="overflow-x:auto"><table class="out-table"><thead><tr>';
+            html += '<th>State</th>';
+            alphabet.forEach(s => html += `<th>${s}</th>`);
+            html += '</tr></thead><tbody>';
+            states.forEach(state => {
+                const isAccept = accept.includes(state);
+                const isStart = state === start;
+                html += '<tr>';
+                let label = state;
+                if (isStart) label = '→ ' + label;
+                if (isAccept) label = '* ' + label;
+                const cls = isAccept ? 'accept-state' : (isStart ? 'start-state' : '');
+                html += `<td class="${cls}">${label}</td>`;
+                alphabet.forEach(sym => {
+                    html += `<td>${transitions[state]?.[sym] ?? '—'}</td>`;
+                });
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            html += '<p class="hint" style="margin-top:10px">* = accept state &nbsp;|&nbsp; → = start state</p>';
+            return html;
+        }
+
+        // ── API call ──────────────────────────────────────────────
+        async function apiPost(endpoint, body) {
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            return res.json();
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // DFA
+        // ══════════════════════════════════════════════════════════
+        function buildDFATable() {
+            const states = parseList(document.getElementById('dfa-states').value);
+            const symbols = parseList(document.getElementById('dfa-alpha').value);
+            if (!states.length || !symbols.length) return showError('dfa-error', 'Enter states and alphabet first.');
+            buildTable('dfa-table-wrap', states, symbols);
+            showError('dfa-error', '');
+        }
+
+        async function runDFA() {
+            showError('dfa-error', '');
+            const states = parseList(document.getElementById('dfa-states').value);
+            const alpha = parseList(document.getElementById('dfa-alpha').value);
+            const start = document.getElementById('dfa-start').value.trim();
+            const accept = parseList(document.getElementById('dfa-accept').value);
+            const input = document.getElementById('dfa-input').value;
+            const transitions = readTransitions('dfa-table-wrap', states, alpha);
+
+            const data = await apiPost('/api/dfa/simulate', { states, alphabet: alpha, transitions, start, accept, input });
+            if (data.error) return showError('dfa-error', data.error);
+
+            const verdict = data.accepted ? 'accept' : 'reject';
+            const icon = data.accepted ? '✓' : '✗';
+            const label = data.accepted ? 'ACCEPTED' : 'REJECTED';
+
+            let html = `
+    <div class="result-panel">
+      <div class="result-header ${verdict}">${icon} ${label} &nbsp;·&nbsp; Final state: <code>${data.final_state}</code></div>
+      <div class="result-body">
+        <div class="card-title" style="margin-bottom:12px">Execution Trace</div>
+        <div class="trace">`;
+
+            if (data.steps.length === 0) {
+                html += `<div class="trace-empty">Empty string — machine stays at start state <strong>${start}</strong></div>`;
+            } else {
+                data.steps.forEach((step, i) => {
+                    html += `
+        <div class="trace-step">
+          <span class="state">${step.state}</span>
+          <span class="arrow">─</span>
+          <span class="symbol">${step.symbol}</span>
+          <span class="arrow">──▶</span>
+          <span class="next">${step.next_state}</span>
+        </div>`;
+                });
+            }
+            html += `</div></div></div>`;
+            document.getElementById('dfa-result').innerHTML = html;
+        }
+
+        function loadDFAExample() {
+            document.getElementById('dfa-states').value = 'q0, q1, q2';
+            document.getElementById('dfa-alpha').value = 'a, b';
+            document.getElementById('dfa-start').value = 'q0';
+            document.getElementById('dfa-accept').value = 'q2';
+            document.getElementById('dfa-input').value = 'abab';
+            buildDFATable();
+            setTimeout(() => {
+                fillTable('dfa-table-wrap', ['q0', 'q1', 'q2'], ['a', 'b'], {
+                    q0: { a: 'q1', b: 'q0' },
+                    q1: { a: 'q1', b: 'q2' },
+                    q2: { a: 'q1', b: 'q0' },
+                });
+            }, 50);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // NFA
+        // ══════════════════════════════════════════════════════════
+        function buildNFATable() {
+            const states = parseList(document.getElementById('nfa-states').value);
+            const symbols = parseList(document.getElementById('nfa-alpha').value);
+            if (!states.length || !symbols.length) return showError('nfa-error', 'Enter states and alphabet first.');
+            buildTable('nfa-table-wrap', states, symbols, true, true);
+            showError('nfa-error', '');
+        }
+
+        async function runNFA() {
+            showError('nfa-error', '');
+            const states = parseList(document.getElementById('nfa-states').value);
+            const alpha = parseList(document.getElementById('nfa-alpha').value);
+            const start = document.getElementById('nfa-start').value.trim();
+            const accept = parseList(document.getElementById('nfa-accept').value);
+            const input = document.getElementById('nfa-input').value;
+            const transitions = readTransitions('nfa-table-wrap', states, alpha, true, true);
+
+            const data = await apiPost('/api/nfa/simulate', { states, alphabet: alpha, transitions, start, accept, input });
+            if (data.error) return showError('nfa-error', data.error);
+
+            const verdict = data.accepted ? 'accept' : 'reject';
+            const icon = data.accepted ? '✓' : '✗';
+            const label = data.accepted ? 'ACCEPTED' : 'REJECTED';
+
+            let html = `
+    <div class="result-panel">
+      <div class="result-header ${verdict}">${icon} ${label}</div>
+      <div class="result-body">
+        <div class="card-title" style="margin-bottom:8px">Active states after processing</div>
+        <div class="trace">`;
+            if (data.final_states.length === 0) {
+                html += `<div class="trace-empty">No active states — all paths died.</div>`;
+            } else {
+                data.final_states.forEach(s => {
+                    const isAccept = accept.includes(s);
+                    html += `<div class="trace-step"><span class="state">${s}</span>${isAccept ? '<span class="badge badge-accept" style="margin-left:auto">accept</span>' : ''}</div>`;
+                });
+            }
+            html += `</div></div></div>`;
+            document.getElementById('nfa-result').innerHTML = html;
+        }
+
+        function loadNFAExample() {
+            document.getElementById('nfa-states').value = 'q0, q1, q2, q3';
+            document.getElementById('nfa-alpha').value = 'a, b';
+            document.getElementById('nfa-start').value = 'q0';
+            document.getElementById('nfa-accept').value = 'q1, q3';
+            document.getElementById('nfa-input').value = 'ab';
+            buildNFATable();
+            setTimeout(() => {
+                fillTable('nfa-table-wrap', ['q0', 'q1', 'q2', 'q3'], ['a', 'b'], {
+                    q0: { 'ε': [], a: ['q1', 'q2'], b: ['q2', 'q3'] },
+                    q1: { 'ε': [], a: ['q1'], b: ['q1'] },
+                    q2: { 'ε': [], a: ['q2'], b: ['q2', 'q3'] },
+                    q3: { 'ε': [], a: [], b: [] },
+                }, true, true);
+            }, 50);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // CONVERT
+        // ══════════════════════════════════════════════════════════
+        function buildConvTable() {
+            const states = parseList(document.getElementById('conv-states').value);
+            const symbols = parseList(document.getElementById('conv-alpha').value);
+            if (!states.length || !symbols.length) return showError('conv-error', 'Enter states and alphabet first.');
+            buildTable('conv-table-wrap', states, symbols, true, true);
+            showError('conv-error', '');
+        }
+
+        async function runConvert() {
+            showError('conv-error', '');
+            const states = parseList(document.getElementById('conv-states').value);
+            const alpha = parseList(document.getElementById('conv-alpha').value);
+            const start = document.getElementById('conv-start').value.trim();
+            const accept = parseList(document.getElementById('conv-accept').value);
+            const transitions = readTransitions('conv-table-wrap', states, alpha, true, true);
+
+            const data = await apiPost('/api/nfa/convert', { states, alphabet: alpha, transitions, start, accept });
+            if (data.error) return showError('conv-error', data.error);
+
+            let html = `
+    <div class="result-header info" style="border-radius:8px 8px 0 0;margin-bottom:0">
+      ⇒ Conversion complete — ${data.states.length} DFA states
+    </div>
+    <div style="padding:20px 0">
+      <div class="card-title">New DFA States &amp; Start/Accept</div>
+      <div class="mapping-list">`;
+
+            data.states.forEach(s => {
+                const isAccept = data.accept.includes(s);
+                const isStart = s === data.start;
+                const nfaSubset = data.state_map[s] || [];
+                html += `<div class="mapping-item">
+      <span class="from">${s}</span>
+      <span style="color:var(--muted)">←</span>
+      <span style="color:var(--muted);font-size:12px">{${nfaSubset.join(', ')}}</span>
+      ${isStart ? '<span class="badge badge-start" style="margin-left:auto">start</span>' : ''}
+      ${isAccept ? '<span class="badge badge-accept">accept</span>' : ''}
+    </div>`;
+            });
+
+            html += `</div>
+    <div class="card-title" style="margin-top:20px;margin-bottom:10px">Transition Table</div>`;
+            html += renderOutTable(data.states, data.alphabet, data.transitions, data.start, data.accept);
+            html += '</div>';
+            document.getElementById('conv-result').innerHTML = html;
+        }
+
+        function loadConvExample() {
+            document.getElementById('conv-states').value = 'q0, q1, q2, q3';
+            document.getElementById('conv-alpha').value = 'a, b';
+            document.getElementById('conv-start').value = 'q0';
+            document.getElementById('conv-accept').value = 'q3';
+            buildConvTable();
+            setTimeout(() => {
+                fillTable('conv-table-wrap', ['q0', 'q1', 'q2', 'q3'], ['a', 'b'], {
+                    q0: { 'ε': ['q1'], a: ['q0', 'q1'], b: ['q0'] },
+                    q1: { 'ε': [], a: [], b: ['q2'] },
+                    q2: { 'ε': [], a: [], b: ['q3'] },
+                    q3: { 'ε': [], a: [], b: [] },
+                }, true, true);
+            }, 50);
+        }
+
+        // ══════════════════════════════════════════════════════════
+        // MINIMIZE
+        // ══════════════════════════════════════════════════════════
+        function buildMinTable() {
+            const states = parseList(document.getElementById('min-states').value);
+            const symbols = parseList(document.getElementById('min-alpha').value);
+            if (!states.length || !symbols.length) return showError('min-error', 'Enter states and alphabet first.');
+            buildTable('min-table-wrap', states, symbols);
+            showError('min-error', '');
+        }
+
+        async function runMinimize() {
+            showError('min-error', '');
+            const states = parseList(document.getElementById('min-states').value);
+            const alpha = parseList(document.getElementById('min-alpha').value);
+            const start = document.getElementById('min-start').value.trim();
+            const accept = parseList(document.getElementById('min-accept').value);
+            const transitions = readTransitions('min-table-wrap', states, alpha);
+
+            const data = await apiPost('/api/dfa/minimize', { states, alphabet: alpha, transitions, start, accept });
+            if (data.error) return showError('min-error', data.error);
+
+            const reduced = data.original_count - data.minimized_count;
+            let html = `
+    <div class="stats-row">
+      <div class="stat-box"><div class="num">${data.original_count}</div><div class="lbl">Original States</div></div>
+      <div class="stat-box"><div class="num">${data.minimized_count}</div><div class="lbl">Minimized States</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--green)">${reduced}</div><div class="lbl">States Removed</div></div>
+    </div>`;
+
+            html += `<div class="card-title" style="margin-bottom:10px">State Partition Map</div>
+    <div class="mapping-list">`;
+            Object.entries(data.partition_map).sort().forEach(([orig, merged]) => {
+                const isAccept = data.accept.includes(merged);
+                html += `<div class="mapping-item">
+      <span class="from">${orig}</span>
+      <span style="color:var(--muted)">→</span>
+      <span class="to">${merged}</span>
+      ${isAccept ? '<span class="badge badge-accept" style="margin-left:auto">accept</span>' : ''}
+    </div>`;
+            });
+            html += `</div>
+    <div class="card-title" style="margin-top:20px;margin-bottom:10px">Minimized Transition Table</div>`;
+            html += renderOutTable(data.states, data.alphabet, data.transitions, data.start, data.accept);
+            document.getElementById('min-result').innerHTML = html;
+        }
+
+        function loadMinExample() {
+            document.getElementById('min-states').value = 'q0, q1, q2, q3, q4';
+            document.getElementById('min-alpha').value = 'a, b';
+            document.getElementById('min-start').value = 'q0';
+            document.getElementById('min-accept').value = 'q2';
+            buildMinTable();
+            setTimeout(() => {
+                fillTable('min-table-wrap', ['q0', 'q1', 'q2', 'q3', 'q4'], ['a', 'b'], {
+                    q0: { a: 'q1', b: 'q0' },
+                    q1: { a: 'q1', b: 'q2' },
+                    q2: { a: 'q1', b: 'q0' },
+                    q3: { a: 'q4', b: 'q3' },
+                    q4: { a: 'q4', b: 'q2' },
+                });
+            }, 50);
+        }
+
+        // Load DFA example on startup
+        window.addEventListener('load', loadDFAExample);
+    </script>
+</body>
+
+</html>

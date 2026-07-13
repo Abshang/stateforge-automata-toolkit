@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Automata Theory Simulator</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
+      :root {
+        --bg: #0d0e14;
+        --surface: #15161f;
+        --surface2: #1c1e2b;
+        --border: #262838;
+        --border2: #34374a;
+        --text: #e4e4ec;
+        --muted: #8b8da3;
+        --faint: #5a5c70;
+        --accent: #7c8cff;
+        --accent-dim: #4a52a8;
+        --accept: #4ade80;
+        --reject: #f87171;
+        --eps: #c98bf0;
+        --serif: "STIX Two Text", Georgia, "Times New Roman", serif;
+        --mono: "JetBrains Mono", "Cascadia Code", monospace;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--serif);
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+
+      /* faint grid texture echoing graph paper / state diagrams */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image:
+          linear-gradient(var(--border) 1px, transparent 1px),
+          linear-gradient(90deg, var(--border) 1px, transparent 1px);
+        background-size: 48px 48px;
+        opacity: 0.18;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* ───────────────────────── Header ───────────────────────── */
+      header {
+        position: relative;
+        z-index: 1;
+        padding: 40px 48px 28px;
+        border-bottom: 1px solid var(--border);
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+      header h1 {
+        font-size: 34px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+      header h1 .delta {
+        color: var(--accent);
+        font-style: italic;
+        font-weight: 400;
+      }
+      header p {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 8px;
+        max-width: 620px;
+      }
+
+      /* ───────────────────────── Tabs ───────────────────────── */
+      nav.tabs {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 2px;
+        padding: 0 48px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+      }
+      nav.tabs button {
+        font-family: var(--mono);
+        font-size: 12.5px;
+        letter-spacing: 0.02em;
+        padding: 16px 22px;
+        background: none;
+        border: none;
+        color: var(--faint);
+        cursor: pointer;
+        position: relative;
+        white-space: nowrap;
+        transition: color 0.15s;
+      }
+      nav.tabs button .tag {
+        color: var(--accent-dim);
+        margin-right: 6px;
+      }
+      nav.tabs button:hover {
+        color: var(--text);
+      }
+      nav.tabs button.active {
+        color: var(--text);
+      }
+      nav.tabs button.active::after {
+        content: "";
+        position: absolute;
+        left: 22px;
+        right: 22px;
+        bottom: -1px;
+        height: 2px;
+        background: var(--accent);
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 40px 48px 80px;
+      }
+      section.page {
+        display: none;
+      }
+      section.page.active {
+        display: block;
+      }
+
+      .intro {
+        font-size: 14px;
+        color: var(--muted);
+        max-width: 680px;
+        margin-bottom: 32px;
+        padding-left: 16px;
+        border-left: 2px solid var(--border2);
+      }
+      .intro b {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 28px;
+        align-items: start;
+      }
+      @media (max-width: 920px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ───────────────────────── Form card ───────────────────────── */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+      }
+      .card-head {
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+      }
+      .card-body {
+        padding: 20px;
+      }
+
+      .field {
+        margin-bottom: 16px;
+      }
+      .field:last-child {
+        margin-bottom: 0;
+      }
+      .field label {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        font-family: var(--mono);
+        font-size: 11.5px;
+        color: var(--muted);
+        margin-bottom: 7px;
+      }
+      .field label .sym {
+        font-family: var(--serif);
+        font-style: italic;
+        color: var(--accent);
+        font-size: 14px;
+      }
+      .field input {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border2);
+        border-radius: 3px;
+        color: var(--text);
+        padding: 9px 11px;
+        font-family: var(--mono);
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .field input:focus {
+        border-color: var(--accent);
+      }
+      .field .hint {
+        font-size: 10.5px;
+        color: var(--faint);
+        margin-top: 5px;
+      }
+
+      .btnrow {
+        display: flex;
+        gap: 8px;
+        margin-top: 18px;
+        flex-wrap: wrap;
+      }
+      button.btn {
+        font-family: var(--mono);
+        font-size: 12px;
+        letter-spacing: 0.02em;
+        padding: 9px 16px;
+        border-radius: 3px;
+        border: 1px solid var(--border2);
+        background: var(--surface2);
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      button.btn:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      button.btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #0d0e14;
+        font-weight: 600;
+      }
+      button.btn.primary:hover {
+        background: #90a0ff;
+        color: #0d0e14;
+      }
+
+      /* ───────────────────────── Transition table ───────────────────────── */
+      .tbl-wrap {
+        overflow-x: auto;
+        margin-top: 4px;
+      }
+      table.delta {
+        border-collapse: collapse;
+        width: 100%;
+        font-family: var(--mono);
+        font-size: 12.5px;
+      }
+      table.delta th {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 8px 10px;
+        color: var(--muted);
+        font-weight: 500;
+        text-align: center;
+      }
+      table.delta th.eps-col {
+        color: var(--eps);
+      }
+      table.delta td {
+        border: 1px solid var(--border);
+        padding: 0;
+      }
+      table.delta td.rowlabel {
+        background: var(--surface2);
+        padding: 8px 12px;
+        color: var(--accent);
+        text-align: center;
+        white-space: nowrap;
+      }
+      table.delta td input {
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        text-align: center;
+        padding: 8px 6px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        outline: none;
+      }
+      table.delta td input:focus {
+        background: var(--surface2);
+      }
+
+      /* ───────────────────────── Result panel ───────────────────────── */
+      .result-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        min-height: 200px;
+      }
+      .placeholder {
+        padding: 60px 30px;
+        text-align: center;
+        color: var(--faint);
+        font-size: 13px;
+      }
+      .verdict-bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        font-family: var(--mono);
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        border-bottom: 1px solid var(--border);
+      }
+      .verdict-bar.accept {
+        color: var(--accept);
+        background: rgba(74, 222, 128, 0.06);
+      }
+      .verdict-bar.reject {
+        color: var(--reject);
+        background: rgba(248, 113, 113, 0.06);
+      }
+      .verdict-bar.info {
+        color: var(--accent);
+        background: rgba(124, 140, 255, 0.06);
+      }
+      .verdict-bar .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .result-body {
+        padding: 22px;
+      }
+      .result-section {
+        margin-bottom: 24px;
+      }
+      .result-section:last-child {
+        margin-bottom: 0;
+      }
+      .result-section h4 {
+        font-family: var(--mono);
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--faint);
+        margin-bottom: 12px;
+      }
+
+      /* state diagram svg */
+      .diagram-wrap {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 8px;
+        overflow-x: auto;
+      }
+      .diagram-wrap svg {
+        display: block;
+        margin: 0 auto;
+      }
+      .state-circle {
+        fill: var(--surface2);
+        stroke: var(--border2);
+        stroke-width: 1.5;
+        transition:
+          fill 0.25s,
+          stroke 0.25s;
+      }
+      .state-circle.active {
+        stroke: var(--accent);
+        fill: rgba(124, 140, 255, 0.18);
+        stroke-width: 2.5;
+      }
+      .state-circle.accept-ring {
+        stroke-dasharray: 0;
+      }
+      .state-label {
+        font-family: var(--mono);
+        font-size: 13px;
+        fill: var(--text);
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .edge-line {
+        stroke: var(--border2);
+        stroke-width: 1.5;
+        fill: none;
+      }
+      .edge-line.eps {
+        stroke: var(--eps);
+        stroke-dasharray: 4 3;
+      }
+      .edge-label {
+        font-family: var(--mono);
+        font-size: 11px;
+        fill: var(--muted);
+      }
+      .edge-label.eps {
+        fill: var(--eps);
+      }
+
+      /* execution trace */
+      .trace-list {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .trace-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--mono);
+        font-size: 13px;
+        padding: 7px 12px;
+        background: var(--surface2);
+        border-radius: 3px;
+        border-left: 2px solid var(--border2);
+      }
+      .trace-row .st {
+        color: var(--accent);
+        min-width: 46px;
+      }
+      .trace-row .ar {
+        color: var(--faint);
+      }
+      .trace-row .sy {
+        color: #fbbf60;
+        background: rgba(251, 191, 96, 0.1);
+        padding: 1px 7px;
+        border-radius: 3px;
+        min-width: 18px;
+        text-align: center;
+      }
+      .trace-row .nx {
+        color: var(--accept);
+      }
+      .trace-empty {
+        color: var(--faint);
+        font-size: 13px;
+        font-style: italic;
+      }
+
+      .chip-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .chip {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-family: var(--mono);
+        font-size: 12.5px;
+        padding: 8px 12px;
+        background: var(--surface2);
+        border-radius: 3px;
+      }
+      .chip .from {
+        color: var(--eps);
+      }
+      .chip .to {
+        color: var(--accent);
+      }
+      .chip .sub {
+        color: var(--faint);
+        font-size: 11px;
+      }
+      .badge {
+        margin-left: auto;
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 2px 7px;
+        border-radius: 99px;
+        font-weight: 700;
+      }
+      .badge.accept {
+        background: rgba(74, 222, 128, 0.15);
+        color: var(--accept);
+      }
+      .badge.start {
+        background: rgba(124, 140, 255, 0.15);
+        color: var(--accent);
+      }
+
+      .stat-grid {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 18px;
+        flex-wrap: wrap;
+      }
+      .stat {
+        flex: 1;
+        min-width: 110px;
+        background: var(--surface2);
+        border-radius: 4px;
+        padding: 14px 16px;
+        text-align: center;
+      }
+      .stat .n {
+        font-family: var(--mono);
+        font-size: 26px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .stat .l {
+        font-family: var(--mono);
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+        color: var(--faint);
+        margin-top: 3px;
+        text-transform: uppercase;
+      }
+
+      .out-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--mono);
+        font-size: 12.5px;
+      }
+      .out-table th {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        color: var(--muted);
+        text-align: center;
+      }
+      .out-table td {
+        border: 1px solid var(--border);
+        padding: 8px 12px;
+        text-align: center;
+      }
+      .out-table td.accept-cell {
+        color: var(--accept);
+        font-weight: 700;
+      }
+      .out-table td.start-cell {
+        color: var(--accent);
+      }
+
+      .error-banner {
+        margin-top: 14px;
+        padding: 11px 15px;
+        background: rgba(248, 113, 113, 0.08);
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        border-radius: 3px;
+        color: var(--reject);
+        font-family: var(--mono);
+        font-size: 12.5px;
+      }
+
+      footer {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        padding: 24px;
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 11px;
+        border-top: 1px solid var(--border);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="eyebrow">Foundations of Computation Theory</div>
+      <h1><span class="delta">δ</span> Automata Theory Simulator</h1>
+      <p>
+        An interactive workbench for finite automata — simulate DFAs and NFAs,
+        convert nondeterministic machines via Subset Construction, and minimize
+        state count with Hopcroft's algorithm. Runs entirely in your browser.
+      </p>
+    </header>
+
+    <nav class="tabs">
+      <button class="active" data-tab="dfa">
+        <span class="tag">01</span>DFA Simulator
+      </button>
+      <button data-tab="nfa"><span class="tag">02</span>NFA Simulator</button>
+      <button data-tab="convert">
+        <span class="tag">03</span>Subset Construction
+      </button>
+      <button data-tab="minimize">
+        <span class="tag">04</span>Hopcroft Minimizer
+      </button>
+    </nav>
+
+    <main>
+      <!-- ══════════════ DFA ══════════════ -->
+      <section class="page active" id="page-dfa">
+        <p class="intro">
+          <b>M = (Q, Σ, δ, q₀, F)</b> — a deterministic machine where every
+          (state, symbol) pair has exactly one defined transition. Enter your
+          machine below, build the transition table, then run a string to see
+          the live trace.
+        </p>
+        <div class="layout">
+          <div>
+            <div class="card">
+              <div class="card-head">Machine Definition</div>
+              <div class="card-body">
+                <div class="field">
+                  <label
+                    ><span class="sym">Q</span> states (comma separated)</label
+                  >
+                  <input id="dfa-states" value="q0, q1, q2" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">Σ</span> alphabet</label>
+                  <input id="dfa-alpha" value="a, b" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">q₀</span> start state</label>
+                  <input id="dfa-start" value="q0" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">F</span> accept states</label>
+                  <input id="dfa-accept" value="q2" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">w</span> test string</label>
+                  <input id="dfa-input" value="abab" />
+                </div>
+                <div class="btnrow">
+                  <button class="btn" onclick="DFA.build()">Build table</button>
+                  <button class="btn" onclick="DFA.example()">
+                    Load example
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top: 20px">
+              <div class="card-head">Transition Function δ</div>
+              <div class="card-body">
+                <div class="tbl-wrap" id="dfa-table">
+                  <p class="hint">Build the table to begin.</p>
+                </div>
+                <div class="btnrow">
+                  <button class="btn primary" onclick="DFA.run()">
+                    ▸ Run simulation
+                  </button>
+                </div>
+                <div id="dfa-error"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="result-card" id="dfa-result">
+            <div class="placeholder">
+              State diagram and execution trace will appear here.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ NFA ══════════════ -->
+      <section class="page" id="page-nfa">
+        <p class="intro">
+          <b>N = (Q, Σ, δ, q₀, F)</b> with <b>δ : Q × (Σ ∪ {ε}) → 𝒫(Q)</b> —
+          each transition may lead to several states at once, and ε-moves cost
+          no input. The machine accepts if <i>any</i> branch lands on an accept
+          state.
+        </p>
+        <div class="layout">
+          <div>
+            <div class="card">
+              <div class="card-head">Machine Definition</div>
+              <div class="card-body">
+                <div class="field">
+                  <label><span class="sym">Q</span> states</label
+                  ><input id="nfa-states" value="q0, q1, q2, q3" />
+                </div>
+                <div class="field">
+                  <label
+                    ><span class="sym">Σ</span> alphabet (excluding ε)</label
+                  ><input id="nfa-alpha" value="a, b" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">q₀</span> start state</label
+                  ><input id="nfa-start" value="q0" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">F</span> accept states</label
+                  ><input id="nfa-accept" value="q1, q3" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">w</span> test string</label
+                  ><input id="nfa-input" value="ab" />
+                </div>
+                <div class="btnrow">
+                  <button class="btn" onclick="NFA.build()">Build table</button>
+                  <button class="btn" onclick="NFA.example()">
+                    Load example
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top: 20px">
+              <div class="card-head">
+                Transition Function δ
+                <span style="color: var(--eps)"
+                  >· ε column included · comma-separated targets</span
+                >
+              </div>
+              <div class="card-body">
+                <div class="tbl-wrap" id="nfa-table">
+                  <p class="hint">Build the table to begin.</p>
+                </div>
+                <div class="btnrow">
+                  <button class="btn primary" onclick="NFA.run()">
+                    ▸ Run simulation
+                  </button>
+                </div>
+                <div id="nfa-error"></div>
+              </div>
+            </div>
+          </div>
+          <div class="result-card" id="nfa-result">
+            <div class="placeholder">
+              Active-state sets and verdict will appear here.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ CONVERT ══════════════ -->
+      <section class="page" id="page-convert">
+        <p class="intro">
+          <b>Subset Construction:</b> every reachable subset of NFA states
+          becomes one DFA state. Start from ε-closure({q₀}); for each symbol,
+          move and re-close; repeat until no new subset appears.
+        </p>
+        <div class="layout">
+          <div>
+            <div class="card">
+              <div class="card-head">NFA Definition</div>
+              <div class="card-body">
+                <div class="field">
+                  <label><span class="sym">Q</span> states</label
+                  ><input id="conv-states" value="q0, q1, q2, q3" />
+                </div>
+                <div class="field">
+                  <label
+                    ><span class="sym">Σ</span> alphabet (excluding ε)</label
+                  ><input id="conv-alpha" value="a, b" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">q₀</span> start state</label
+                  ><input id="conv-start" value="q0" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">F</span> accept states</label
+                  ><input id="conv-accept" value="q3" />
+                </div>
+                <div class="btnrow">
+                  <button class="btn" onclick="Conv.build()">
+                    Build table
+                  </button>
+                  <button class="btn" onclick="Conv.example()">
+                    Load example
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top: 20px">
+              <div class="card-head">NFA Transition Function</div>
+              <div class="card-body">
+                <div class="tbl-wrap" id="conv-table">
+                  <p class="hint">Build the table to begin.</p>
+                </div>
+                <div class="btnrow">
+                  <button class="btn primary" onclick="Conv.run()">
+                    ⇒ Convert to DFA
+                  </button>
+                </div>
+                <div id="conv-error"></div>
+              </div>
+            </div>
+          </div>
+          <div class="result-card" id="conv-result">
+            <div class="placeholder">
+              The equivalent DFA and subset map will appear here.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ══════════════ MINIMIZE ══════════════ -->
+      <section class="page" id="page-minimize">
+        <p class="intro">
+          <b>Hopcroft's Algorithm:</b> partitions Q into F and Q∖F, then
+          repeatedly splits any group whose members disagree on where some
+          symbol leads. Surviving groups are the states of the minimal DFA.
+        </p>
+        <div class="layout">
+          <div>
+            <div class="card">
+              <div class="card-head">DFA Definition</div>
+              <div class="card-body">
+                <div class="field">
+                  <label><span class="sym">Q</span> states</label
+                  ><input id="min-states" value="q0, q1, q2, q3, q4" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">Σ</span> alphabet</label
+                  ><input id="min-alpha" value="a, b" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">q₀</span> start state</label
+                  ><input id="min-start" value="q0" />
+                </div>
+                <div class="field">
+                  <label><span class="sym">F</span> accept states</label
+                  ><input id="min-accept" value="q2" />
+                </div>
+                <div class="btnrow">
+                  <button class="btn" onclick="Min.build()">Build table</button>
+                  <button class="btn" onclick="Min.example()">
+                    Load example
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="margin-top: 20px">
+              <div class="card-head">Transition Function δ</div>
+              <div class="card-body">
+                <div class="tbl-wrap" id="min-table">
+                  <p class="hint">Build the table to begin.</p>
+                </div>
+                <div class="btnrow">
+                  <button class="btn primary" onclick="Min.run()">
+                    ⚙ Minimize
+                  </button>
+                </div>
+                <div id="min-error"></div>
+              </div>
+            </div>
+          </div>
+          <div class="result-card" id="min-result">
+            <div class="placeholder">
+              The minimized DFA and partition map will appear here.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      Automata Theory Simulator — Foundations of Computation Theory — Fatemeh
+      Abshang
+    </footer>
+
+    <script>
+      const EPS = "ε";
+
+      // ─────────────────────────── shared helpers ───────────────────────────
+      function parseList(s) {
+        return s
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+      }
+      function showErr(id, msg) {
+        document.getElementById(id).innerHTML = msg
+          ? `<div class="error-banner">⚠ ${msg}</div>`
+          : "";
+      }
+      function switchTab(name) {
+        document
+          .querySelectorAll("nav.tabs button")
+          .forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
+        document
+          .querySelectorAll("section.page")
+          .forEach((p) =>
+            p.classList.toggle("active", p.id === "page-" + name),
+          );
+      }
+      document
+        .querySelectorAll("nav.tabs button")
+        .forEach((b) =>
+          b.addEventListener("click", () => switchTab(b.dataset.tab)),
+        );
+
+      function buildTableHTML(wrapId, states, symbols, opts = {}) {
+        const isNFA = opts.isNFA || false;
+        const cols = isNFA ? [EPS, ...symbols] : symbols;
+        let h = '<table class="delta"><thead><tr><th>state \\ symbol</th>';
+        cols.forEach(
+          (c) => (h += `<th${c === EPS ? ' class="eps-col"' : ""}>${c}</th>`),
+        );
+        h += "</tr></thead><tbody>";
+        states.forEach((st) => {
+          h += `<tr><td class="rowlabel">${st}</td>`;
+          cols.forEach(
+            (c) =>
+              (h += `<td><input id="t_${wrapId}_${st}_${c}" placeholder="${isNFA ? "∅" : "—"}"/></td>`),
+          );
+          h += "</tr>";
+        });
+        h += "</tbody></table>";
+        document.getElementById(wrapId).innerHTML = h;
+      }
+      function readTable(wrapId, states, symbols, opts = {}) {
+        const isNFA = opts.isNFA || false;
+        const cols = isNFA ? [EPS, ...symbols] : symbols;
+        const t = {};
+        states.forEach((st) => {
+          t[st] = {};
+          cols.forEach((c) => {
+            const el = document.getElementById(`t_${wrapId}_${st}_${c}`);
+            const v = el ? el.value.trim() : "";
+            if (isNFA) t[st][c] = v ? parseList(v) : [];
+            else if (v) t[st][c] = v;
+          });
+        });
+        return t;
+      }
+      function fillTable(wrapId, states, symbols, data, opts = {}) {
+        const isNFA = opts.isNFA || false;
+        const cols = isNFA ? [EPS, ...symbols] : symbols;
+        states.forEach((st) =>
+          cols.forEach((c) => {
+            const el = document.getElementById(`t_${wrapId}_${st}_${c}`);
+            if (!el) return;
+            const v = data[st]?.[c];
+            if (v === undefined) return;
+            el.value = Array.isArray(v) ? v.join(", ") : v;
+          }),
+        );
+      }
+
+      // ─────────────────────────── core algorithms (pure JS) ───────────────────────────
+      function dfaValidate(states, alpha, trans, start, accept) {
+        if (!states.length) throw "State set Q cannot be empty.";
+        if (!alpha.length) throw "Alphabet Σ cannot be empty.";
+        if (!states.includes(start))
+          throw `Start state '${start}' is not in Q.`;
+        for (const a of accept)
+          if (!states.includes(a)) throw `Accept state '${a}' is not in Q.`;
+        for (const s of states)
+          for (const a of alpha) {
+            const tgt = trans[s]?.[a];
+            if (tgt === undefined) throw `Missing transition δ(${s}, ${a}).`;
+            if (!states.includes(tgt))
+              throw `δ(${s}, ${a}) → '${tgt}' is not a valid state.`;
+          }
+      }
+      function dfaRun(states, alpha, trans, start, accept, input) {
+        let cur = start,
+          steps = [];
+        for (const ch of input) {
+          if (!alpha.includes(ch)) throw `Symbol '${ch}' is not in Σ.`;
+          const nxt = trans[cur][ch];
+          steps.push({ state: cur, symbol: ch, next: nxt });
+          cur = nxt;
+        }
+        return { accepted: accept.includes(cur), final: cur, steps };
+      }
+
+      function epsClosure(states, trans, S) {
+        const closure = new Set(S),
+          stack = [...S];
+        while (stack.length) {
+          const s = stack.pop();
+          for (const t of trans[s]?.[EPS] || [])
+            if (!closure.has(t)) {
+              closure.add(t);
+              stack.push(t);
+            }
+        }
+        return closure;
+      }
+      function move(trans, S, sym) {
+        const out = new Set();
+        for (const s of S) for (const t of trans[s]?.[sym] || []) out.add(t);
+        return out;
+      }
+      function nfaValidate(states, alpha, trans, start, accept) {
+        if (!states.length) throw "State set Q cannot be empty.";
+        if (!alpha.length) throw "Alphabet Σ cannot be empty.";
+        if (!states.includes(start))
+          throw `Start state '${start}' is not in Q.`;
+        for (const s in trans) {
+          if (!states.includes(s))
+            throw `Transition table has undeclared state '${s}'.`;
+          for (const sym in trans[s])
+            for (const t of trans[s][sym])
+              if (!states.includes(t))
+                throw `δ(${s}, ${sym}) → '${t}' is not a valid state.`;
+        }
+      }
+      function nfaRun(states, alpha, trans, start, accept, input) {
+        let cur = epsClosure(states, trans, new Set([start]));
+        for (const ch of input) {
+          if (!alpha.includes(ch)) throw `Symbol '${ch}' is not in Σ.`;
+          cur = epsClosure(states, trans, move(trans, cur, ch));
+          if (cur.size === 0)
+            return { accepted: false, finalStates: new Set() };
+        }
+        return {
+          accepted: [...cur].some((s) => accept.includes(s)),
+          finalStates: cur,
+        };
+      }
+
+      function label(set) {
+        return set.size === 0 ? "∅" : "{" + [...set].sort().join(",") + "}";
+      }
+
+      function subsetConstruction(states, alpha, trans, start, accept) {
+        const startSet = epsClosure(states, trans, new Set([start]));
+        const key = (s) => [...s].sort().join(",");
+        const seen = new Map([
+          [key(startSet), { set: startSet, name: label(startSet) }],
+        ]);
+        const queue = [startSet];
+        const dfaTrans = {};
+
+        while (queue.length) {
+          const S = queue.pop();
+          const sname = seen.get(key(S)).name;
+          dfaTrans[sname] = {};
+          for (const a of [...alpha].sort()) {
+            const T = epsClosure(states, trans, move(trans, S, a));
+            const k = key(T);
+            if (!seen.has(k)) {
+              seen.set(k, { set: T, name: label(T) });
+              queue.push(T);
+            }
+            dfaTrans[sname][a] = seen.get(k).name;
+          }
+        }
+
+        const dfaStates = [...seen.values()].map((v) => v.name);
+        const dfaAccept = [...seen.values()]
+          .filter((v) => [...v.set].some((s) => accept.includes(s)))
+          .map((v) => v.name);
+        const stateMap = {};
+        for (const v of seen.values()) stateMap[v.name] = [...v.set].sort();
+
+        return {
+          states: dfaStates,
+          alphabet: [...alpha].sort(),
+          start: label(startSet),
+          accept: dfaAccept,
+          transitions: dfaTrans,
+          stateMap,
+        };
+      }
+
+      function reachableStates(states, alpha, trans, start) {
+        const visited = new Set(),
+          queue = [start];
+        while (queue.length) {
+          const s = queue.pop();
+          if (visited.has(s)) continue;
+          visited.add(s);
+          for (const a of alpha) queue.push(trans[s][a]);
+        }
+        return visited;
+      }
+
+      function hopcroftMinimize(states, alpha, trans, start, accept) {
+        const reach = reachableStates(states, alpha, trans, start);
+        const acceptSet = new Set([...accept].filter((s) => reach.has(s)));
+        const nonAccept = new Set([...reach].filter((s) => !acceptSet.has(s)));
+        const setKey = (s) => [...s].sort().join(",");
+
+        let partitions = [acceptSet, nonAccept].filter((s) => s.size > 0);
+        let worklist = partitions.map((p) => new Set(p));
+
+        const removeFromWorklist = (target) => {
+          const k = setKey(target);
+          const idx = worklist.findIndex((w) => setKey(w) === k);
+          if (idx >= 0) worklist.splice(idx, 1);
+        };
+        const inWorklist = (target) =>
+          worklist.some((w) => setKey(w) === setKey(target));
+
+        while (worklist.length) {
+          const C = worklist.pop();
+          for (const a of alpha) {
+            const pre = new Set([...reach].filter((s) => C.has(trans[s][a])));
+            const next = [];
+            for (const G of partitions) {
+              const inside = new Set([...G].filter((s) => pre.has(s)));
+              const outside = new Set([...G].filter((s) => !pre.has(s)));
+              if (inside.size > 0 && outside.size > 0) {
+                next.push(inside, outside);
+                if (inWorklist(G)) {
+                  removeFromWorklist(G);
+                  worklist.push(inside, outside);
+                } else {
+                  worklist.push(inside.size <= outside.size ? inside : outside);
+                }
+              } else {
+                next.push(G);
+              }
+            }
+            partitions = next;
+          }
+        }
+
+        const stateToRep = {};
+        for (const group of partitions) {
+          const rep = [...group].sort()[0];
+          for (const s of group) stateToRep[s] = rep;
+        }
+        const newStates = [...new Set(Object.values(stateToRep))];
+        const newStart = stateToRep[start];
+        const newAccept = [
+          ...new Set([...acceptSet].map((s) => stateToRep[s])),
+        ];
+        const newTrans = {};
+        for (const group of partitions) {
+          const rep = stateToRep[[...group].sort()[0]];
+          newTrans[rep] = {};
+          for (const a of alpha) newTrans[rep][a] = stateToRep[trans[rep][a]];
+        }
+        return {
+          states: newStates,
+          alphabet: alpha,
+          start: newStart,
+          accept: newAccept,
+          transitions: newTrans,
+          partitionMap: stateToRep,
+          originalCount: states.length,
+        };
+      }
+
+      // ─────────────────────────── state diagram SVG renderer ───────────────────────────
+      function renderDiagram(
+        states,
+        alpha,
+        trans,
+        start,
+        accept,
+        activeState,
+        isNFA = false,
+      ) {
+        const n = states.length;
+        const cx = 320,
+          cy = 130,
+          R = Math.min(100, (38 * n) / 2 + 30);
+        const r = 28;
+        const positions = {};
+        states.forEach((s, i) => {
+          const ang = (2 * Math.PI * i) / n - Math.PI / 2;
+          positions[s] = {
+            x: cx + R * Math.cos(ang),
+            y: cy + R * Math.sin(ang),
+          };
+        });
+
+        let svg = `<svg viewBox="0 0 640 280" width="100%" style="max-width:640px;height:auto">`;
+        svg += `<defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#34374a"/></marker>
+          <marker id="arrow-eps" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c98bf0"/></marker></defs>`;
+
+        // edges (self-loops drawn as small arcs, others as curved lines)
+        const drawnPairs = {};
+        const edgeEntries = [];
+        for (const s of states) {
+          const row = trans[s] || {};
+          for (const sym in row) {
+            const targets = isNFA ? row[sym] : [row[sym]];
+            for (const t of targets) {
+              if (t === undefined || !positions[t]) continue;
+              edgeEntries.push({ from: s, to: t, sym });
+            }
+          }
+        }
+        // group by from-to pair to combine labels
+        const grouped = {};
+        for (const e of edgeEntries) {
+          const k = e.from + "→" + e.to;
+          grouped[k] = grouped[k] || { from: e.from, to: e.to, syms: [] };
+          grouped[k].syms.push(e.sym);
+        }
+
+        for (const k in grouped) {
+          const { from, to, syms } = grouped[k];
+          const labelTxt = syms.join(",");
+          const isEps = syms.includes(EPS);
+          const p1 = positions[from],
+            p2 = positions[to];
+          if (from === to) {
+            // self loop above the node
+            const lx = p1.x,
+              ly = p1.y - r - 22;
+            svg += `<path class="edge-line${isEps ? " eps" : ""}" d="M${p1.x - 14},${p1.y - r + 4} C ${p1.x - 22},${ly} ${p1.x + 22},${ly} ${p1.x + 14},${p1.y - r + 4}" marker-end="url(#arrow${isEps ? "-eps" : ""})"/>`;
+            svg += `<text class="edge-label${isEps ? " eps" : ""}" x="${lx}" y="${ly - 6}" text-anchor="middle">${labelTxt}</text>`;
+          } else {
+            const dx = p2.x - p1.x,
+              dy = p2.y - p1.y,
+              dist = Math.hypot(dx, dy);
+            const ux = dx / dist,
+              uy = dy / dist;
+            const sx = p1.x + ux * r,
+              sy = p1.y + uy * r;
+            const ex = p2.x - ux * r,
+              ey = p2.y - uy * r;
+            const mx = (sx + ex) / 2 - uy * 22,
+              my = (sy + ey) / 2 + ux * 22;
+            svg += `<path class="edge-line${isEps ? " eps" : ""}" d="M${sx},${sy} Q${mx},${my} ${ex},${ey}" marker-end="url(#arrow${isEps ? "-eps" : ""})"/>`;
+            svg += `<text class="edge-label${isEps ? " eps" : ""}" x="${mx}" y="${my - 4}" text-anchor="middle">${labelTxt}</text>`;
+          }
+        }
+
+        // start arrow
+        const sp = positions[start];
+        svg += `<line class="edge-line" x1="${sp.x - r - 30}" y1="${sp.y}" x2="${sp.x - r - 2}" y2="${sp.y}" marker-end="url(#arrow)"/>`;
+
+        // nodes
+        for (const s of states) {
+          const p = positions[s];
+          const isActive = s === activeState;
+          const isAccept = accept.includes(s);
+          svg += `<circle class="state-circle${isActive ? " active" : ""}" cx="${p.x}" cy="${p.y}" r="${r}"/>`;
+          if (isAccept)
+            svg += `<circle class="state-circle${isActive ? " active" : ""}" cx="${p.x}" cy="${p.y}" r="${r - 6}" fill="none"/>`;
+          svg += `<text class="state-label" x="${p.x}" y="${p.y + 1}">${s}</text>`;
+        }
+        svg += "</svg>";
+        return svg;
+      }
+
+      // ─────────────────────────── DFA tab ───────────────────────────
+      const DFA = {
+        build() {
+          const states = parseList(v("dfa-states")),
+            alpha = parseList(v("dfa-alpha"));
+          if (!states.length || !alpha.length)
+            return showErr("dfa-error", "Enter states and alphabet first.");
+          buildTableHTML("dfa-table", states, alpha);
+          showErr("dfa-error", "");
+        },
+        run() {
+          showErr("dfa-error", "");
+          const states = parseList(v("dfa-states")),
+            alpha = parseList(v("dfa-alpha"));
+          const start = v("dfa-start"),
+            accept = parseList(v("dfa-accept")),
+            input = v("dfa-input");
+          const trans = readTable("dfa-table", states, alpha);
+          try {
+            dfaValidate(states, alpha, trans, start, accept);
+            const res = dfaRun(states, alpha, trans, start, accept, input);
+            this.render(states, alpha, trans, start, accept, input, res);
+          } catch (e) {
+            showErr("dfa-error", e);
+          }
+        },
+        render(states, alpha, trans, start, accept, input, res) {
+          const verdict = res.accepted ? "accept" : "reject";
+          let h = `<div class="verdict-bar ${verdict}"><span class="dot"></span>${res.accepted ? "ACCEPTED" : "REJECTED"} <span style="color:var(--muted);font-weight:400;margin-left:6px">final state ${res.final}</span></div>`;
+          h += '<div class="result-body">';
+          h += `<div class="result-section"><h4>State Diagram</h4><div class="diagram-wrap">${renderDiagram(states, alpha, trans, start, accept, res.final)}</div></div>`;
+          h +=
+            '<div class="result-section"><h4>Execution Trace</h4><div class="trace-list">';
+          if (!res.steps.length)
+            h += `<div class="trace-empty">Empty string — machine stays at start state ${start}.</div>`;
+          else
+            res.steps.forEach(
+              (s) =>
+                (h += `<div class="trace-row"><span class="st">${s.state}</span><span class="ar">─</span><span class="sy">${s.symbol}</span><span class="ar">──▸</span><span class="nx">${s.next}</span></div>`),
+            );
+          h += "</div></div></div>";
+          document.getElementById("dfa-result").innerHTML = h;
+        },
+        example() {
+          set("dfa-states", "q0, q1, q2");
+          set("dfa-alpha", "a, b");
+          set("dfa-start", "q0");
+          set("dfa-accept", "q2");
+          set("dfa-input", "abab");
+          this.build();
+          fillTable("dfa-table", ["q0", "q1", "q2"], ["a", "b"], {
+            q0: { a: "q1", b: "q0" },
+            q1: { a: "q1", b: "q2" },
+            q2: { a: "q1", b: "q0" },
+          });
+        },
+      };
+
+      // ─────────────────────────── NFA tab ───────────────────────────
+      const NFA = {
+        build() {
+          const states = parseList(v("nfa-states")),
+            alpha = parseList(v("nfa-alpha"));
+          if (!states.length || !alpha.length)
+            return showErr("nfa-error", "Enter states and alphabet first.");
+          buildTableHTML("nfa-table", states, alpha, { isNFA: true });
+          showErr("nfa-error", "");
+        },
+        run() {
+          showErr("nfa-error", "");
+          const states = parseList(v("nfa-states")),
+            alpha = parseList(v("nfa-alpha"));
+          const start = v("nfa-start"),
+            accept = parseList(v("nfa-accept")),
+            input = v("nfa-input");
+          const trans = readTable("nfa-table", states, alpha, { isNFA: true });
+          try {
+            nfaValidate(states, alpha, trans, start, accept);
+            const res = nfaRun(states, alpha, trans, start, accept, input);
+            this.render(states, alpha, trans, start, accept, res);
+          } catch (e) {
+            showErr("nfa-error", e);
+          }
+        },
+        render(states, alpha, trans, start, accept, res) {
+          const verdict = res.accepted ? "accept" : "reject";
+          let h = `<div class="verdict-bar ${verdict}"><span class="dot"></span>${res.accepted ? "ACCEPTED" : "REJECTED"}</div>`;
+          h += '<div class="result-body">';
+          const activeLabel = [...res.finalStates].join(",");
+          h += `<div class="result-section"><h4>State Diagram</h4><div class="diagram-wrap">${renderDiagram(states, alpha, trans, start, accept, null, true)}</div></div>`;
+          h +=
+            '<div class="result-section"><h4>Active States After Processing</h4><div class="chip-list">';
+          if (res.finalStates.size === 0)
+            h += `<div class="trace-empty">No active states — every branch died.</div>`;
+          else
+            [...res.finalStates].sort().forEach((s) => {
+              h += `<div class="chip"><span class="to">${s}</span>${accept.includes(s) ? '<span class="badge accept">accept</span>' : ""}</div>`;
+            });
+          h += "</div></div></div>";
+          document.getElementById("nfa-result").innerHTML = h;
+        },
+        example() {
+          set("nfa-states", "q0, q1, q2, q3");
+          set("nfa-alpha", "a, b");
+          set("nfa-start", "q0");
+          set("nfa-accept", "q1, q3");
+          set("nfa-input", "ab");
+          this.build();
+          fillTable(
+            "nfa-table",
+            ["q0", "q1", "q2", "q3"],
+            ["a", "b"],
+            {
+              q0: { [EPS]: [], a: ["q1", "q2"], b: ["q2", "q3"] },
+              q1: { [EPS]: [], a: ["q1"], b: ["q1"] },
+              q2: { [EPS]: [], a: ["q2"], b: ["q2", "q3"] },
+              q3: { [EPS]: [], a: [], b: [] },
+            },
+            { isNFA: true },
+          );
+        },
+      };
+
+      // ─────────────────────────── Convert tab ───────────────────────────
+      const Conv = {
+        build() {
+          const states = parseList(v("conv-states")),
+            alpha = parseList(v("conv-alpha"));
+          if (!states.length || !alpha.length)
+            return showErr("conv-error", "Enter states and alphabet first.");
+          buildTableHTML("conv-table", states, alpha, { isNFA: true });
+          showErr("conv-error", "");
+        },
+        run() {
+          showErr("conv-error", "");
+          const states = parseList(v("conv-states")),
+            alpha = parseList(v("conv-alpha"));
+          const start = v("conv-start"),
+            accept = parseList(v("conv-accept"));
+          const trans = readTable("conv-table", states, alpha, { isNFA: true });
+          try {
+            nfaValidate(states, alpha, trans, start, accept);
+            const res = subsetConstruction(states, alpha, trans, start, accept);
+            this.render(res);
+          } catch (e) {
+            showErr("conv-error", e);
+          }
+        },
+        render(res) {
+          let h = `<div class="verdict-bar info"><span class="dot"></span>${res.states.length} REACHABLE DFA STATES</div>`;
+          h += '<div class="result-body">';
+          h +=
+            '<div class="result-section"><h4>Subset Map (DFA state ← NFA states)</h4><div class="chip-list">';
+          res.states.forEach((s) => {
+            h += `<div class="chip"><span class="to">${s}</span><span class="sub">← {${res.stateMap[s].join(", ")}}</span>${s === res.start ? '<span class="badge start">start</span>' : ""}${res.accept.includes(s) ? '<span class="badge accept">accept</span>' : ""}</div>`;
+          });
+          h += "</div></div>";
+          h +=
+            '<div class="result-section"><h4>Transition Table</h4>' +
+            renderOutTable(res) +
+            "</div>";
+          h += "</div>";
+          document.getElementById("conv-result").innerHTML = h;
+        },
+        example() {
+          set("conv-states", "q0, q1, q2, q3");
+          set("conv-alpha", "a, b");
+          set("conv-start", "q0");
+          set("conv-accept", "q3");
+          this.build();
+          fillTable(
+            "conv-table",
+            ["q0", "q1", "q2", "q3"],
+            ["a", "b"],
+            {
+              q0: { [EPS]: ["q1"], a: ["q0", "q1"], b: ["q0"] },
+              q1: { [EPS]: [], a: [], b: ["q2"] },
+              q2: { [EPS]: [], a: [], b: ["q3"] },
+              q3: { [EPS]: [], a: [], b: [] },
+            },
+            { isNFA: true },
+          );
+        },
+      };
+
+      // ─────────────────────────── Minimize tab ───────────────────────────
+      const Min = {
+        build() {
+          const states = parseList(v("min-states")),
+            alpha = parseList(v("min-alpha"));
+          if (!states.length || !alpha.length)
+            return showErr("min-error", "Enter states and alphabet first.");
+          buildTableHTML("min-table", states, alpha);
+          showErr("min-error", "");
+        },
+        run() {
+          showErr("min-error", "");
+          const states = parseList(v("min-states")),
+            alpha = parseList(v("min-alpha"));
+          const start = v("min-start"),
+            accept = parseList(v("min-accept"));
+          const trans = readTable("min-table", states, alpha);
+          try {
+            dfaValidate(states, alpha, trans, start, accept);
+            const res = hopcroftMinimize(states, alpha, trans, start, accept);
+            this.render(res);
+          } catch (e) {
+            showErr("min-error", e);
+          }
+        },
+        render(res) {
+          const reduced = res.originalCount - res.states.length;
+          let h = '<div class="result-body">';
+          h += `<div class="stat-grid">
+      <div class="stat"><div class="n">${res.originalCount}</div><div class="l">before</div></div>
+      <div class="stat"><div class="n">${res.states.length}</div><div class="l">after</div></div>
+      <div class="stat"><div class="n" style="color:var(--accept)">${reduced}</div><div class="l">removed</div></div>
+    </div>`;
+          h +=
+            '<div class="result-section"><h4>Partition Map (original → minimized)</h4><div class="chip-list">';
+          Object.keys(res.partitionMap)
+            .sort()
+            .forEach((orig) => {
+              const merged = res.partitionMap[orig];
+              h += `<div class="chip"><span class="from">${orig}</span><span class="ar">→</span><span class="to">${merged}</span>${res.accept.includes(merged) ? '<span class="badge accept">accept</span>' : ""}</div>`;
+            });
+          h += "</div></div>";
+          h +=
+            '<div class="result-section"><h4>Minimized Transition Table</h4>' +
+            renderOutTable(res) +
+            "</div>";
+          h += "</div>";
+          document.getElementById("min-result").innerHTML = h;
+        },
+        example() {
+          set("min-states", "q0, q1, q2, q3, q4");
+          set("min-alpha", "a, b");
+          set("min-start", "q0");
+          set("min-accept", "q2");
+          this.build();
+          fillTable("min-table", ["q0", "q1", "q2", "q3", "q4"], ["a", "b"], {
+            q0: { a: "q1", b: "q0" },
+            q1: { a: "q1", b: "q2" },
+            q2: { a: "q1", b: "q0" },
+            q3: { a: "q4", b: "q3" },
+            q4: { a: "q4", b: "q2" },
+          });
+        },
+      };
+
+      function renderOutTable(res) {
+        let h =
+          '<div class="tbl-wrap"><table class="out-table"><thead><tr><th>state</th>';
+        res.alphabet.forEach((a) => (h += `<th>${a}</th>`));
+        h += "</tr></thead><tbody>";
+        res.states.forEach((s) => {
+          const isStart = s === res.start,
+            isAccept = res.accept.includes(s);
+          let label = (isStart ? "→ " : "") + (isAccept ? "* " : "") + s;
+          h += `<tr><td class="${isAccept ? "accept-cell" : isStart ? "start-cell" : ""}">${label}</td>`;
+          res.alphabet.forEach(
+            (a) => (h += `<td>${res.transitions[s][a]}</td>`),
+          );
+          h += "</tr>";
+        });
+        h +=
+          '</tbody></table></div><p style="font-family:var(--mono);font-size:10.5px;color:var(--faint);margin-top:8px">* accept state &nbsp;·&nbsp; → start state</p>';
+        return h;
+      }
+
+      function v(id) {
+        return document.getElementById(id).value.trim();
+      }
+      function set(id, val) {
+        document.getElementById(id).value = val;
+      }
+
+      // boot
+      DFA.example();
+    </script>
+  </body>
+</html>
